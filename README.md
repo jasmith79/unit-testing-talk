@@ -90,7 +90,7 @@ def calc_subnet_mask(cidr_number: int) -> str: # type annotation prevents float,
     if not 0 <= cidr_number <= 32: # checking if value is in expected range
         raise ValueError(
             "CIDR values are between 0 and 32 inclusive, received {}".format(
-                str(number),
+                str(cidr_number),
             )
         )
 
@@ -105,7 +105,7 @@ That *should* fix the problems but let's add some tests to make sure. Don't worr
 ```python
 import pytest
 
-from some_module import calc_subnet_mask
+from nethelper import calc_subnet_mask
 
 class TestCalcSubnetMask:
     """Tests the calc_subnet_mask function"""
@@ -120,13 +120,19 @@ class TestCalcSubnetMask:
         assert calc_subnet_mask(16) == "255.255.0.0"
     
     def test_negative(self):
-        with pytest.raises(ValueError, matches="CIDR values are between 0 and 32 inclusive"):
+        with pytest.raises(ValueError, match="CIDR values are between 0 and 32 inclusive"):
             calc_subnet_mask(-5)
     
     def test_too_high(self):
-        with pytest.raises(ValueError, matches="CIDR values are between 0 and 32 inclusive"):
+        with pytest.raises(ValueError, match="CIDR values are between 0 and 32 inclusive"):
             calc_subnet_mask(50)
 ```
+
+Then to run them:
+
+## Running the Tests
+
+Let's try out the tests we just wrote: run `pytest tests/nethelper.py` and verify they work. We'll cover what that just did in a minute.
 
 I didn't write tests for floats, None, and other completely invalid inputs, I'm relying on the type annotations and static analysis to do that for me here, but you could easily add tests for those too. Now we've fixed the bug! But later on careless Joe the programmer realizes that there is problem with a boundary condition in a different numeric check somewhere else in the same file and because he's a lazy sort of fellow he ctrl-f's and replaces every 32 in the file with 33. Now an invalid CIDR of 33 will slip through, and the bug that you already spent time fixing is now reintroduced... unless you have the tests to catch it!
 
@@ -139,6 +145,14 @@ The fourth thing that this type of testing buys you is sleep. On every project t
 Alright, tests are awesomesauce, we get it, how do we get there?
 
 Python's standard library has facilities for unit testing. They're... ok, but pytest is just better. The API is less clunky, the output better formatted, etc. You can install pytest with pip, and unlike most things where you'd want to use venv it's probably ok to install globally on your system.
+
+You can use pytest like so:
+
+```bash
+pytest # runs all tests in $CWD, equivalent to pytest ./*.py
+pytest some_dir/*.py # run all tests in some_dir
+pytest tests/some_test.py # run all tests in some_test file
+```
 
 Let's start at the very beginning (a very good place to start). Project layout, from [realpython](https://realpython.com/python-application-layouts/#command-line-application-layouts):
 
@@ -161,7 +175,7 @@ helloworld/
 └── setup.py
 ```
 
-If you run pytest at the command prompt with no arguments or flags it will automatically run all the tests in your tests folder in your working directory. You can see an actual repo with this kind of structure [here](https://github.com/graingert/samplemod).
+You can see an actual sample repo with this kind of structure [here](https://github.com/graingert/samplemod), and this repo itself is pretty similar.
 
 So lets bring back our less-than-stellar function from the beginning:
 
@@ -202,50 +216,78 @@ For question five we have no clue, we'll have to read the implementation of `is_
 Let's say for the purpose of this demo though that we looked at `is_valid` and x can be any positive integer less than the MAX_INT, and that the `is_valid` function cannot throw an error and doesn't do any I/O. **NOTE: although the tests we're are about to write will document some of the edge cases much of this information is still propagated *implicity* through the system. Any change in the `is_valid` function can break all these or render them meaningless** The proper, *isolated* test for this function, as written, looks like this:
 
 ```python
+import os
+import sys
+
+# We need to do this because otherwise the test dir won't
+# have our local files to import on path. Normally I (and
+# a lot of other people) abstract this out with a file usually
+# called something like "context" so we don't have to repeat
+# this in every single test file (see the other examples)
+# but here we have to in order to be able to monkeypatch
+# the closure vars.
+sys.path.insert(
+    0,
+    os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+)
+
 import math
 from unittest import mock
 import pytest
-
-from some_module import some_fun
-
-logger = mock.MagicMock()
+from some_module import some_module
 
 
 class TestSomeFun:
-    @mock.patch("some_module.logger", logger)
-    @mock.patch("some_module.is_valid", MagicMock(return_value=False))
-    def test_zero(self):
+    def test_zero(self, monkeypatch):
+        logger = mock.MagicMock()
         logger.log = mock.MagicMock()
-        result = some_fun(0)
+        is_valid = mock.MagicMock(return_value=False)
+        monkeypatch.setattr(some_module, "logger", logger)
+        monkeypatch.setattr(some_module, "is_valid", is_valid)
+        result =  some_module.some_fun(0)
+        is_valid.assert_called_with(0)
         logger.log.assert_called_with("Invalid input to x")
         assert result is None
-    
-    @mock.patch("some_module.logger", logger)
-    @mock.patch("some_module.is_valid", MagicMock(return_value=False))
-    def test_negative(self):
+
+    def test_negative(self, monkeypatch):
+        logger = mock.MagicMock()
         logger.log = mock.MagicMock()
-        result = some_fun(-3)
+        is_valid = mock.MagicMock(return_value=False)
+        monkeypatch.setattr(some_module, "logger", logger)
+        monkeypatch.setattr(some_module, "is_valid", is_valid)
+        result =  some_module.some_fun(-3)
+        is_valid.assert_called_with(-3)
         logger.log.assert_called_with("Invalid input to x")
         assert result is None
-    
-    @mock.patch("some_module.logger", logger)
-    @mock.patch("some_module.is_valid", MagicMock(return_value=False))
-    def test_infinity(self):
+
+    def test_infinity(self, monkeypatch):
+        logger = mock.MagicMock()
         logger.log = mock.MagicMock()
-        result = some_fun(math.inf)
+        is_valid = mock.MagicMock(return_value=False)
+        monkeypatch.setattr(some_module, "logger", logger)
+        monkeypatch.setattr(some_module, "is_valid", is_valid)
+        result =  some_module.some_fun(math.inf)
+        is_valid.assert_called_with(math.inf)
         logger.log.assert_called_with("Invalid input to x")
         assert result is None
-    
-    @mock.patch("some_module.logger", logger)
-    @mock.patch("some_module.is_valid", MagicMock(return_value=True))
-    def test_positive_int(self):
+
+    def test_positive_int(self, monkeypatch):
+        logger = mock.MagicMock()
         logger.log = mock.MagicMock()
-        result = some_fun(5)
+        is_valid = mock.MagicMock(return_value=True)
+        monkeypatch.setattr(some_module, "logger", logger)
+        monkeypatch.setattr(some_module, "is_valid", is_valid)
+        result =  some_module.some_fun(5)
+        is_valid.assert_called_with(5)
         logger.log.assert_not_called()
         assert result == 25
 ```
 
-Yikes. That's a LOT of verbiage and patching and syntax for a function with < 10 LoC. Note that we have multiple mocks and patches per test. This is the kind of thing I meant when I said testing gives you feedback on your design.
+and then run them:
+
+`pytest tests/less_good.py`
+
+Yikes. They *work*, but that's a LOT of verbiage and patching and syntax for a function with < 10 LoC. Note that we have multiple mocks and patches *per test*. This is the kind of thing I meant when I said testing gives you feedback on your design.
     
 So let's re-write this to separate the concerns and be more amenable to this sort of testing:
 
@@ -275,7 +317,7 @@ from unittest import mock
 import pytest
 
 # Note we don't even care about some_fun itself anymore
-from some_module import is_valid, times_five, not_quite_some_fun
+from some_module import is_valid, not_quite_some_fun
         
 class TestIsValid:
     def test_non_number(self):
@@ -352,7 +394,7 @@ So now that we have some reasonable tests, let's talk about what's going on in t
 import pytest
 
 # Imports the stuff we want to test from our module.
-from some_module import is_valid, times_five, not_quite_some_fun
+from some_module import is_valid, not_quite_some_fun
 
 # The class isn't strictly necessary but I use it as a mechanism to group
 # related tests.
@@ -384,6 +426,7 @@ class TestNQSF:
         logger.log = mock.MagicMock() # log method is what we care about
         result = not_quite_some_fun(logger, validator, xform, 3)
         assert result == 3
+        validator.assert_called_with(3)
         logger.log.assert_not_called() # we could alternatively assert it got called
         xform.assert_called_with(3) # The function we're testing passed the expected arg
 ```
@@ -410,12 +453,12 @@ In the revamped code and tests, there is no monkey patching. Everything depends 
 
 It's easiest to explain state by talking about what it isn't. The contrast to state is a *constant*. Consider the following:
 
-```
+```python
 MAX_THREADS = 5
 users = []
 ```
 
-Here it's pretty obvious that we've got a constant and a stateful mutable variable: `MAX_THREADS` is assigned a literal integer and follows the all caps convention for constants. While Python will let you reassign it, any of your tools (linter, static analyzer) are going to complain and any assingment to an all caps var that occurs somewhere other than the top of the file is going to stick out like a sore thumb in the code. The `users` list by contrast is *obviously* stateful, if we weren't going to mutate it later (to add the users) it would be superfluous: what good is an *empty* list?
+Here it's pretty obvious that we've got a constant and a stateful mutable variable: `MAX_THREADS` is assigned a literal integer and follows the all caps convention for constants. While Python will let you reassign it, any of your tools (linter, static analyzer) are going to complain and any assingment to an all caps var that occurs somewhere other than the top of the file is going to stick out like a sore thumb in the code. The `users` list by contrast is *obviously* stateful, if we weren't going to mutate it later (to add the users) it would be superfluous: what good is an *empty* user list?
 
 State is always a problem in tests, but the real problem comes when it bleeds into other contexts. **Any use of state should be explicit.** Prefer funargs over closures, plain data (list, tuple, dict, data class, etc) and functions over stateful objects. If you have 5 tests that depend on the global `users` list, the success of one test could depend on how the others went! In other words, not *repeatable* (see Rule #2). The same test should never fail one time and pass the next if the code hasn't changed.
 
@@ -427,11 +470,11 @@ If a test fails and you don't *immediately* understand why, either the code or t
 * Calling more than one class constructor
 * Multiple asserts that aren't related
 
-Simple tests also run faster, and the faster your tests run the less impediment to running them (see Tests Should be Heeded, below).
+Simple tests also run faster, and the faster your tests run the less impediment to running them (see Tests Should be Heeded, below). There's a feedback cycle, a certain flow state we're trying to maintain here, and we want to keep that cycle as short as possible.
 
 ### Tests Should be Automated
 
-When it comes to tedious checklist-driven stuff like testing code the human will *always* be the weakest link. No matter how disciplined and contentious you may be [7 +- 2](https://en.wikipedia.org/wiki/The_Magical_Number_Seven,_Plus_or_Minus_Two) will get you. You can use various tools to ensure that you run your tests like git commit hooks, CI/CD servers, and IDE integration (run tests on file save).
+When it comes to tedious checklist-driven stuff like testing code the human will *always* be the weakest link. No matter how disciplined and contentious you may be [7 +- 2](https://en.wikipedia.org/wiki/The_Magical_Number_Seven,_Plus_or_Minus_Two) will get you. You can use various tools to ensure that you run your tests like git commit hooks, CI/CD servers, and IDE integration (run tests [on file save](https://code.visualstudio.com/docs/python/testing#_example-test-walkthroughs)).
 
 ### Tests Should Be Heeded
 
@@ -440,17 +483,6 @@ Never deploy if all the tests don't pass. **NEVER DEPLOY IF ALL THE TESTS DON'T 
 Heed the design feedback your tests are giving you. If your code is hard to test, it's probably poorly-written. **IF YOUR CODE IS HARD TO TEST, IT'S PROBABLY POORLY-WRITTEN.** Be intentional about reworking code to be amenable to unit testing. Don't take shortcuts, things *always* get bigger over time.
 
 Don't *be* a tool: *use* one.
-
-## Running the Tests
-
-As stated you can automate running the tests. But there's nothing wrong with *also* running them manually. You can run the tests from the command line with pytest:
-
-```bash
-pytest # runs all tests in $CWD/tests, equivalent to pytest tests/*
-pytest some_dir/*.py # run all tests in some_dir
-pytest tests/some_test.py # run all tests in some_test file
-```
-
 ## *When* Should You Write the Tests?
 
 This is a matter of some debate. There is a movement in the programming community for what is called Test-Driven Development (TDD). In TDD, you write the test *first*. Then you run them to make sure it fails, because you can definitely have a false negative where a test passes even when the code is wrong! This is how you test the test itself. *Then* you write the code, then you make sure the tests pass. I think TDD can be overkill in many cases (it's a lot easier if you already have a formal spec for what a function should do, like the CIDR -> netmask example). But there is one time when you will definitely want to do it: when fixing a bug. Fixing a bug goes like this:
@@ -470,4 +502,6 @@ Static type annotations can reduce the number of trivial tests you write to veri
 
 ## Wrapping up
 
-Testing is like flossing, or not eating junk food, or insert-task-you-know-you-should-do-but-probably-don't. Part of the reason I'm harping so hard on this is because almost everybody sees the benefits intellectually but then faces decisions in the trenches where the expedient thing isn't at all the best thing. It's a cultural thing: if we don't reinforce each other in maintaining good code habits, well, entropy is the default state of the system. More than most, this is an area where we can uplift each other to be better engineers, provide more value to our organization and our customers, and leave things in a better place than you found them. Don't be the last guy that we all complain about who left us a mess to untangle. 
+Testing is like flossing, or not eating junk food, or insert-task-you-know-you-should-do-but-probably-don't. Part of the reason I'm harping so hard on this is because almost everybody sees the benefits intellectually but then faces decisions in the trenches where the expedient thing isn't at all the best thing. It's a cultural thing: if we don't reinforce each other in maintaining good code habits, well, entropy is the default state of the system. More than most, this is an area where we can uplift each other to be better engineers, provide more value to our organization and our customers, and leave things in a better place than you found them. **NOTE: tell Rod Johnson story**.
+
+Don't be the last guy that we all complain about who left us a mess to untangle. 

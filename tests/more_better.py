@@ -33,6 +33,7 @@ class TestNQSF:
         logger.log = mock.MagicMock()
         result = not_quite_some_fun(logger, validator, xform, 3)
         assert result == 3
+        validator.assert_called_with(3)
         logger.log.assert_not_called()
         xform.assert_called_with(3)
 
@@ -42,6 +43,7 @@ class TestNQSF:
         logger = mock.MagicMock()
         logger.log = mock.MagicMock()
         result = not_quite_some_fun(logger, validator, xform, 3)
+        validator.assert_called_with(3)
         logger.log.assert_called_with("Invalid input")
         xform.assert_not_called()
         assert result is None
