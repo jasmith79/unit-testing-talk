@@ -1,3 +1,6 @@
+"""Contains the well-written example"""
+
+
 # This file represents the better version of some_fun
 import math
 

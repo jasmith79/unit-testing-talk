@@ -1,3 +1,5 @@
+"""Contains networking helper functions"""
+
 # type annotation prevents float, None, etc
 def calc_subnet_mask(cidr_number: int) -> str:
     """Calculates the correct submask from the given number in CIDR notation"""

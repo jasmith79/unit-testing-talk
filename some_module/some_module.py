@@ -1,6 +1,8 @@
-# This file illustrates the bad version of some_fun.
-# I've included the dependencies but the implementations
-# are dummied out.
+"""
+his file illustrates the bad version of some_fun.
+I've included the dependencies but the implementations
+are dummied out.
+""" 
 
 class Logger:
     def log(self, msg):
