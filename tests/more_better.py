@@ -3,7 +3,7 @@ from unittest import mock
 import pytest
 
 # Note we don't even care about some_fun itself anymore
-from context import better_is_valid as is_valid, not_quite_some_fun
+from .context import better_is_valid as is_valid, not_quite_some_fun
 
 
 class TestIsValid:
