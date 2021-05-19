@@ -9,3 +9,4 @@ sys.path.insert(
 )
 
 from some_module2 import not_quite_some_fun, is_valid as better_is_valid
+from nethelper import calc_subnet_mask
