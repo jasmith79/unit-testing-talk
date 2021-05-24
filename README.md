@@ -1,3 +1,7 @@
+# Unit Testing Talk
+
+I prepared the following as a presentation to the dev team at Step CG my first month there.
+
 # Test You Some Code, For Great Justice!
 
 This document will cover the why and how of unit testing your Python code, although much of it will be more broadly-applicable to writing software. Much like the git workflow tutorial this is overkill for really simple stuff, but also like the git workflows this is not an all-or-nothing proposition, the more of this you adopt the better off you'll be.
