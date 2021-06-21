@@ -17,8 +17,8 @@ class TestCalcSubnetMask:
 
     def test_negative(self):
         with pytest.raises(ValueError, match="CIDR values are between 0 and 32 inclusive"):
-            calc_subnet_mask(-5)
+            calc_subnet_mask(-1)
 
     def test_too_high(self):
         with pytest.raises(ValueError, match="CIDR values are between 0 and 32 inclusive"):
-            calc_subnet_mask(50)
+            calc_subnet_mask(33)
